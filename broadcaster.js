@@ -6,6 +6,7 @@ const PORT = 41234;
 const BROADCAST_ADDR = "255.255.255.255";
 
 function startBroadcasting(callback) {
+	console.log(`broadcastign on ${BROADCAST_ADDR}:${PORT}`);
 	socket.bind(PORT, () => {
 		socket.setBroadcast(true);
 		setInterval(() => {
@@ -14,7 +15,6 @@ function startBroadcasting(callback) {
 				if (err) {
 					console.log("error: ");
 				}
-				console.log(`broadcastign on ${BROADCAST_ADDR}:${PORT}`);
 			});
 		}, 5000);
 		callback(socket);

@@ -1,7 +1,12 @@
-const startPeerServer = require("./peer");
+const startBroadcasting = require("./broadcaster");
+const startListening = require("./listener");
+let discoveredDevices = new Set();
 
-startPeerServer((socket, ip) => {
-	socket.on("message", (msg) => {
-		console.log("msg--->: ", msg.toString());
+startBroadcasting((socket) => {
+	startListening(socket, (msg, rinfo) => {
+		discoveredDevices.add(rinfo.address);
+		discoveredDevices.forEach((device) => {
+			console.log("discovered device: ", device);
+		});
 	});
 });

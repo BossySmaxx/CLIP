@@ -19,5 +19,8 @@
     "wifi"
   ],
   "author": "bossysmaxx",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.18.2"
+  }
 }

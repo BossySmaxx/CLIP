@@ -1,0 +1,23 @@
+{
+  "name": "clip",
+  "version": "1.0.0",
+  "description": "CLIP (Cross-device LAN Interlinked Paste) - is an app that syncs the clipboard of multiple devices over the LAN",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "clip",
+    "CLIP",
+    "cross",
+    "device",
+    "LAN",
+    "Interlinked",
+    "paste",
+    "CLlipboard",
+    "Wi-Fi",
+    "wifi"
+  ],
+  "author": "bossysmaxx",
+  "license": "ISC"
+}

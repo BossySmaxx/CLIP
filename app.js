@@ -37,14 +37,13 @@ startBroadcasting((socket) => {
 					clipboard.paste((err, data) => {
 						if (err) {
 							console.log("Error in copy paste: ", err);
-							return;
 						}
 						let currentClip = data;
-						console.log(
-							"Clipped data: ",
-							currentClip,
-							lastClipboard
-						);
+						// console.log(
+						// 	"Clipped data: ",
+						// 	currentClip,
+						// 	lastClipboard
+						// );
 						if (lastClipboard !== currentClip) {
 							lastClipboard = currentClip;
 							wsClient.send(Buffer.from(currentClip), (err) => {
@@ -59,7 +58,11 @@ startBroadcasting((socket) => {
 
 				wsClient.on("message", (data) => {
 					console.log("New CLIP: ", data.toString("utf-8"));
-					clipboard.paste();
+					clipboard.copy(data.toString(), (err) => {
+						if (err) {
+							console.log("Error: ", err);
+						}
+					});
 				});
 
 				wsClient.on("close", (code, reason) => {

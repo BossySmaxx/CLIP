@@ -15,11 +15,11 @@ let lastClipboard = "";
 startBroadcasting((socket) => {
 	startListening(socket, (msg, rinfo) => {
 		discoveredDevices.add(rinfo.address);
-		console.clear();
-		console.log("Discovered Devices: ");
-		console.table(discoveredDevices);
-		console.log("----------------------------------\nConnected Devices: ");
-		console.table(connectedClients);
+		// console.clear();
+		// console.log("Discovered Devices: ");
+		// console.table(discoveredDevices);
+		// console.log("----------------------------------\nConnected Devices: ");
+		// console.table(connectedClients);
 
 		discoveredDevices.forEach(async (device) => {
 			if (device !== SELF_IP) {
@@ -48,7 +48,7 @@ startBroadcasting((socket) => {
 							lastClipboard = currentClip;
 							wsClient.send(Buffer.from(currentClip), (err) => {
 								if (err) {
-									console.log("Error: ", err);
+									console.log("Error in sending CLIP: ", err);
 								}
 								// console.log("CLIP sent: ", currentClip);
 							});
@@ -56,14 +56,15 @@ startBroadcasting((socket) => {
 					});
 				}, 1000);
 
-				wsClient.on("message", (data) => {
-					console.log("New CLIP: ", data.toString("utf-8"));
-					clipboard.copy(data.toString(), (err) => {
-						if (err) {
-							console.log("Error: ", err);
-						}
-					});
-				});
+				// wsClient.on("message", (data) => {
+				// 	console.log("New CLIP: ", data.toString("utf-8"));
+				// 	// clipboard.copy(data, (err) => {
+				// 	// 	if (err) {
+				// 	// 		console.log("Error: ", err);
+				// 	// 	}
+				// 	// 	console.log("Press ctrl+v now:", data);
+				// 	// });
+				// });
 
 				wsClient.on("close", (code, reason) => {
 					console.log(
@@ -86,6 +87,13 @@ function websocketServer(callback) {
 	server.on("connection", (socket, req) => {
 		socket.on("message", (data) => {
 			console.log("Message from client: ", data.toString("utf-8"));
+			console.log("New CLIP: ", data.toString("utf-8"));
+			clipboard.copy(data, (err) => {
+				if (err) {
+					console.log("Error: ", err);
+				}
+				console.log("Press ctrl+v now:", data);
+			});
 		});
 	});
 }

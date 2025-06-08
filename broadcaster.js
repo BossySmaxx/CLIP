@@ -1,13 +1,13 @@
 const dgram = require("dgram");
-const startListening = require("./listener");
+// const startListening = require("./listener");
 
-const socket = dgram.createSocket("udp4");
+const socket = dgram.createSocket({ type: "udp4", reuseAddr: true });
 const PORT = 41234;
-const BROADCAST_ADDR = "255.255.255.255";
+const BROADCAST_ADDR = "192.168.1.255";
 
 function startBroadcasting(callback) {
 	console.log(`broadcastign on ${BROADCAST_ADDR}:${PORT}`);
-	socket.bind(PORT, () => {
+	socket.bind(PORT, "0.0.0.0", () => {
 		socket.setBroadcast(true);
 		setInterval(() => {
 			const msg = Buffer.from("DISCOVER_PEER");

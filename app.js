@@ -8,8 +8,10 @@ const connectedClients = new Set(); // Tracks devices already connected via WebS
 startBroadcasting((socket) => {
 	startListening(socket, (msg, rinfo) => {
 		discoveredDevices.add(rinfo.address);
+		console.clear();
+		console.log("Discovered Devices: ");
+		console.table(discoveredDevices);
 		discoveredDevices.forEach((device) => {
-			console.log("discovered device: ", device);
 			if (connectedClients.has(device)) return;
 
 			// Initiate connection to discovered {device}'s websocket server
@@ -36,6 +38,9 @@ startBroadcasting((socket) => {
 				console.log(
 					`closing the connection with ${device} due to  ${code}: ${reason}`
 				);
+				connectedClients.delete(device);
+				console.table(connectedClients);
+				discoveredDevices.delete(device);
 			});
 		});
 	});

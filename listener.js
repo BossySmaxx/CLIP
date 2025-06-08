@@ -1,3 +1,5 @@
+const PORT = 41234;
+
 function startListening(socket, callback) {
 	socket.on("listening", () => {
 		const address = socket.address();
@@ -11,6 +13,8 @@ function startListening(socket, callback) {
 			callback(msg, rinfo);
 		}
 	});
+
+	// socket.bind(PORT, "0.0.0.0");
 }
 
 module.exports = startListening;

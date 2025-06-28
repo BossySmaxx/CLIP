@@ -48,10 +48,12 @@ startBroadcasting((socket) => {
 								// );
 								if (lastClipboard !== currentClip) {
 									lastClipboard = currentClip;
-									if (wsClient.CLOSED) {
+									if (
+										wsClient.readyState === wsClient.CLOSED
+									) {
 										clearInterval(intervalId);
 									}
-									if (wsClient.OPEN) {
+									if (wsClient.readyState === wsClient.OPEN) {
 										wsClient.send(
 											Buffer.from(currentClip),
 											(err) => {

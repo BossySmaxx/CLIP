@@ -34,45 +34,42 @@ startBroadcasting((socket) => {
 				});
 
 				if (connectedClients) {
-					setInterval(() => {
+					let intervalId = setInterval(() => {
 						clipboard.paste((err, data) => {
 							if (err) {
 								console.log("Error in copy paste: ", err);
 							}
-							let currentClip = data;
-							// console.log(
-							// 	"Clipped data: ",
-							// 	currentClip,
-							// 	lastClipboard
-							// );
-							if (lastClipboard !== currentClip) {
-								lastClipboard = currentClip;
-								wsClient.send(
-									Buffer.from(currentClip),
-									(err) => {
-										if (err) {
-											console.log(
-												"Error in sending CLIP: ",
-												err
-											);
-										}
-										// console.log("CLIP sent: ", currentClip);
+							if (data) {
+								let currentClip = data;
+								// console.log(
+								// 	"Clipped data: ",
+								// 	currentClip,
+								// 	lastClipboard
+								// );
+								if (lastClipboard !== currentClip) {
+									lastClipboard = currentClip;
+									if (wsClient.CLOSED) {
+										clearInterval(intervalId);
 									}
-								);
+									if (wsClient.OPEN) {
+										wsClient.send(
+											Buffer.from(currentClip),
+											(err) => {
+												if (err) {
+													console.log(
+														"Error in sending CLIP: ",
+														err
+													);
+												}
+												// console.log("CLIP sent: ", currentClip);
+											}
+										);
+									}
+								}
 							}
 						});
 					}, 1000);
 				}
-
-				// wsClient.on("message", (data) => {
-				// 	console.log("New CLIP: ", data.toString("utf-8"));
-				// 	// clipboard.copy(data, (err) => {
-				// 	// 	if (err) {
-				// 	// 		console.log("Error: ", err);
-				// 	// 	}
-				// 	// 	console.log("Press ctrl+v now:", data);
-				// 	// });
-				// });
 
 				wsClient.on("close", (code, reason) => {
 					console.log(

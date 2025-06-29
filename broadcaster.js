@@ -1,9 +1,10 @@
 const dgram = require("dgram");
+const getBroadcastAddress = require("./utils/broadcasting-address");
 // const startListening = require("./listener");
 
 const socket = dgram.createSocket({ type: "udp4", reuseAddr: true });
 const PORT = 41234;
-const BROADCAST_ADDR = "192.168.1.255";
+const BROADCAST_ADDR = getBroadcastAddress();
 
 function startBroadcasting(callback) {
 	console.log(`broadcastign on ${BROADCAST_ADDR}:${PORT}`);

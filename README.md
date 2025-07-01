@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/BossySmaxx/CLIP/refs/heads/main/assets/CLIP.ico?token=GHSAT0AAAAAADGSXISP2J54326VZDUG6T7O2DDTGEQ" alt="CLIP Logo" width="200" />
+  <img src="./assets/CLIP.ico" alt="CLIP Logo" width="200" />
 </p>
 
 <h1 align="center">CLIP</h1>

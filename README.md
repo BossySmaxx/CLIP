@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="CLIP Logo" width="200" />
+  <img src="https://raw.githubusercontent.com/BossySmaxx/CLIP/refs/heads/main/assets/CLIP.ico?token=GHSAT0AAAAAADGSXISP2J54326VZDUG6T7O2DDTGEQ" alt="CLIP Logo" width="200" />
 </p>
 
 <h1 align="center">CLIP</h1>
@@ -48,13 +48,15 @@ CLIP requires Node.js (v16+ recommended).
 
 -   Install Dependencies
 
-    ```npm install
+    ```bash
+    npm install
 
     ```
 
 -   Run the App
 
-    ```npm app.js
+    ```bash
+    npm app.js
 
     ```
 

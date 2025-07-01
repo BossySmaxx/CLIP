@@ -46,19 +46,19 @@ CLIP requires Node.js (v16+ recommended).
     cd clip
     ```
 
+-   Install Dependencies
+
+    ```npm install
+
+    ```
+
+-   Run the App
+
+    ```npm app.js
+
+    ```
+
 ---
-
-### Install Dependencies
-
--   ```npm install
-
-    ```
-
-### Run the App
-
--   ```npm app.js
-
-    ```
 
 ## 🖥️ Usage
 
@@ -74,3 +74,7 @@ CLIP requires Node.js (v16+ recommended).
 -   Node.js
 -   WebSockets
 -   UDP Broadcasting
+
+```
+
+```

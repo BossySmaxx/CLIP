@@ -62,6 +62,17 @@ CLIP requires Node.js (v16+ recommended).
 
 ---
 
+### 3. Auto-Start on Windows (Optional)
+
+To make CLIP launch automatically on system startup:
+
+1. Press `Win + R`, type `shell:startup`, and hit **Enter**.
+2. In the opened **Startup** folder, right-click and select **New > Shortcut**.
+3. Browse to your `app.js` file (or create a `.bat` file to run it).
+4. Confirm and close the folder.
+
+Your app will now run automatically when Windows starts.
+
 ## 🖥️ Usage
 
 1. Start CLIP on all devices.
@@ -76,7 +87,3 @@ CLIP requires Node.js (v16+ recommended).
 -   Node.js
 -   WebSockets
 -   UDP Broadcasting
-
-```
-
-```

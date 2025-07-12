@@ -43,7 +43,7 @@ startBroadcasting((socket) => {
 				});
 
 				wsClient.on("close", (code, reason) => {
-					console.log(`closing the connection with ${device} due to  ${code}: ${reason}`);
+					console.log(`closing the connection with ${device} due to ${code}: ${reason}`);
 					connectedClients.delete(device);
 					console.table(connectedClients);
 					discoveredDevices.delete(device);
@@ -69,7 +69,8 @@ startBroadcasting((socket) => {
 					// 	}
 					// });
 					if (wsClient.readyState === wsClient.OPEN) {
-						wsClient.send(Buffer.from(JSON.stringify({ msgId: crypto.randomUUID(), ttl: 5, data: `Message from ${device}\n` })));
+						console.log("Sent by: ", device);
+						wsClient.send(Buffer.from(JSON.stringify({ msgId: crypto.randomUUID(), ttl: 5, data: `Message from ${SELF_IP.concat(":", PORT)}\n` })));
 					}
 
 					if (wsClient.readyState === wsClient.CLOSED) {

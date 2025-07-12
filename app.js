@@ -24,76 +24,75 @@ startBroadcasting((socket) => {
 				if (connectedClients.has(device)) return;
 
 				// Initiate connection to newly discovered {device}'s websocket server
-				const wsClients = [];
-				wsClients.push(new ws(`ws://${device}`));
-				wsClients.forEach((wsClient, i) => {
-					wsClient.on("open", () => {
-						console.log("Connected to: ", device);
-						connectedClients.add(device);
-						console.table(connectedClients);
-					});
+				const wsClient = new ws(`ws://${device}`);
+				wsClient.on("open", () => {
+					console.log("Connected to: ", device);
+					connectedClients.add(device);
+					console.table(connectedClients);
+				});
 
-					wsClient.on("message", (data) => {
-						clipboard.copy(data, (err) => {
-							if (err) {
-								console.log("Error: ", err);
-							}
-							console.log("NEW CLIP: You can Press ctrl+v now.");
-						});
-					});
-
-					wsClient.on("close", (code, reason) => {
-						console.log(`closing the connection with ${device} due to  ${code}: ${reason}`);
-						connectedClients.delete(device);
-						console.table(connectedClients);
-						discoveredDevices.delete(device);
+				wsClient.on("message", (data) => {
+					console.log("new message arrived: ");
+					clipboard.copy(data, (err) => {
+						if (err) {
+							console.log("Error: ", err);
+						}
+						console.log("wsClient::NEW CLIP: You can Press ctrl+v now.");
 					});
 				});
 
-				if (wsClients && wsClients.length > 0) {
-					setInterval(() => {
-						clipboard.paste((err, data) => {
-							if (err) {
-								console.log("Error in copy paste: ", Buffer.from(err).toString("utf-8"));
-							}
-							if (!err && data) {
-								let currentClip = data;
-								if (lastClipboard !== currentClip) {
-									lastClipboard = currentClip;
-									// if (wsClient.readyState === wsClient.CLOSED) {
-									// 	clearInterval(intervalId);
-									// }
-									wsClients.forEach((wsClient, i) => {
-										if (wsClient.readyState === wsClient.OPEN) {
-											wsClient.send(Buffer.from(currentClip), (err) => {
-												if (err) {
-													console.log("Error in sending CLIP: ", err);
-												}
-												// console.log("CLIP sent: ", currentClip);
-											});
+				wsClient.on("close", (code, reason) => {
+					console.log(`closing the connection with ${device} due to  ${code}: ${reason}`);
+					connectedClients.delete(device);
+					console.table(connectedClients);
+					discoveredDevices.delete(device);
+				});
+
+				let intervalId = setInterval(() => {
+					clipboard.paste((err, data) => {
+						if (err) {
+							console.log("Error in copy paste: ", err);
+						}
+						if (!err && data) {
+							let currentClip = data;
+							if (lastClipboard !== currentClip) {
+								lastClipboard = currentClip;
+								if (wsClient.readyState === wsClient.OPEN) {
+									wsClient.send(Buffer.from(currentClip), (err) => {
+										if (err) {
+											console.log("Error in sending CLIP: ", err);
 										}
 									});
 								}
 							}
-						});
-					}, 1000);
-				}
+						}
+					});
+					if (wsClient.readyState === wsClient.CLOSED) {
+						clearInterval(intervalId);
+					}
+				}, 1000);
 			}
 		});
 	});
-	// Start websocket Server
-	websocketServer(() => {});
 });
+
+// Start websocket Server
+websocketServer(() => {});
 
 function websocketServer(callback) {
 	const server = new ws.WebSocket.Server({ port: PORT });
 	server.on("connection", (socket, req) => {
-		socket.on("message", (data) => {
+		socket.on("message", (data, isBinary) => {
+			console.log("new data");
+			if (isBinary) {
+				data = Buffer.from(data);
+				data = data.toString("utf-8");
+			}
 			clipboard.copy(data, (err) => {
 				if (err) {
 					console.log("Error: ", err);
 				}
-				console.log("NEW CLIP: You can Press ctrl+v now.");
+				console.log("wss::NEW CLIP: You can Press ctrl+v now.");
 			});
 		});
 	});

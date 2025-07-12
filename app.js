@@ -3,6 +3,7 @@ const ip = require("ip");
 const clipboard = require("copy-paste");
 const startBroadcasting = require("./broadcaster");
 const startListening = require("./listener");
+const safeParser = require("./utils/safeParser");
 require("dotenv").config();
 
 const PORT = process.env.TCP_PORT; // this is connection port transferring data and establishing connection with peers
@@ -49,24 +50,28 @@ startBroadcasting((socket) => {
 				});
 
 				let intervalId = setInterval(() => {
-					clipboard.paste((err, data) => {
-						if (err) {
-							console.log("Error in copy paste: ", err);
-						}
-						if (!err && data) {
-							let currentClip = data;
-							if (lastClipboard !== currentClip) {
-								lastClipboard = currentClip;
-								if (wsClient.readyState === wsClient.OPEN) {
-									wsClient.send(Buffer.from(currentClip), (err) => {
-										if (err) {
-											console.log("Error in sending CLIP: ", err);
-										}
-									});
-								}
-							}
-						}
-					});
+					// clipboard.paste((err, data) => {
+					// 	if (err) {
+					// 		console.log("Error in copy paste: ", err);
+					// 	}
+					// 	if (!err && data) {
+					// 		let currentClip = data;
+					// 		if (lastClipboard !== currentClip) {
+					// 			lastClipboard = currentClip;
+					// 			if (wsClient.readyState === wsClient.OPEN) {
+					// 				wsClient.send(Buffer.from(currentClip), (err) => {
+					// 					if (err) {
+					// 						console.log("Error in sending CLIP: ", err);
+					// 					}
+					// 				});
+					// 			}
+					// 		}
+					// 	}
+					// });
+					if (wsClient.readyState === wsClient.OPEN) {
+						wsClient.send(Buffer.from(JSON.stringify({ msgId: crypto.randomUUID(), ttl: 5, data: `Message from ${device}\n` })));
+					}
+
 					if (wsClient.readyState === wsClient.CLOSED) {
 						clearInterval(intervalId);
 					}
@@ -80,20 +85,27 @@ startBroadcasting((socket) => {
 websocketServer(() => {});
 
 function websocketServer(callback) {
+	let currentMsg = {
+		msgId: null,
+	};
 	const server = new ws.WebSocket.Server({ port: PORT });
 	server.on("connection", (socket, req) => {
 		socket.on("message", (data, isBinary) => {
-			console.log("new data");
 			if (isBinary) {
 				data = Buffer.from(data);
 				data = data.toString("utf-8");
 			}
-			clipboard.copy(data, (err) => {
-				if (err) {
-					console.log("Error: ", err);
-				}
-				console.log("wss::NEW CLIP: You can Press ctrl+v now.");
-			});
+			let msg = safeParser(data);
+			if (msg && msg?.msgId !== currentMsg?.msgId) {
+				console.log("New data:: ", msg);
+				currentMsg = msg;
+			}
+			// clipboard.copy(data, (err) => {
+			// 	if (err) {
+			// 		console.log("Error: ", err);
+			// 	}
+			// 	console.log("wss::NEW CLIP: You can Press ctrl+v now.");
+			// });
 		});
 	});
 }

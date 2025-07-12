@@ -18,8 +18,6 @@ let lastClipboard = "";
 startBroadcasting((socket) => {
 	startListening(socket, (discoveredDevice, rinfo) => {
 		discoveredDevices.add(discoveredDevice);
-		// console.log("discovered devices: ");
-		// console.table(discoveredDevices);
 		discoveredDevices.forEach(async (device) => {
 			if (device.split(":")[0] !== SELF_IP) {
 				// do nothing if device is already connected
@@ -34,6 +32,16 @@ startBroadcasting((socket) => {
 						connectedClients.add(device);
 						console.table(connectedClients);
 					});
+
+					wsClient.on("message", (data) => {
+						clipboard.copy(data, (err) => {
+							if (err) {
+								console.log("Error: ", err);
+							}
+							console.log("NEW CLIP: You can Press ctrl+v now.");
+						});
+					});
+
 					wsClient.on("close", (code, reason) => {
 						console.log(`closing the connection with ${device} due to  ${code}: ${reason}`);
 						connectedClients.delete(device);
@@ -42,7 +50,7 @@ startBroadcasting((socket) => {
 					});
 				});
 
-				if (wsClients && wsClients.length > 1) {
+				if (wsClients && wsClients.length > 0) {
 					setInterval(() => {
 						clipboard.paste((err, data) => {
 							if (err) {

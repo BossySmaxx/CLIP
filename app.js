@@ -5,7 +5,7 @@ const startBroadcasting = require("./broadcaster");
 const startListening = require("./listener");
 require("dotenv").config();
 
-const PORT = process.env.TCP_PORT || 41230; // this is connection port transferring data and establishing connection with peers
+const PORT = process.env.TCP_PORT; // this is connection port transferring data and establishing connection with peers
 
 let discoveredDevices = new Set();
 const connectedClients = new Set(); // Tracks devices already connected via WebSocket
@@ -18,8 +18,10 @@ let lastClipboard = "";
 startBroadcasting((socket) => {
 	startListening(socket, (discoveredDevice, rinfo) => {
 		discoveredDevices.add(discoveredDevice);
+		console.log("discovered devices: ");
+		console.table(discoveredDevices);
 		discoveredDevices.forEach(async (device) => {
-			if (device !== SELF_IP.concat(":", PORT)) {
+			if (device.split(":")[0] !== SELF_IP) {
 				// do nothing if device is already connected
 				if (connectedClients.has(device)) return;
 
@@ -72,7 +74,7 @@ startBroadcasting((socket) => {
 });
 
 function websocketServer(callback) {
-	const server = new ws.WebSocket.Server({ port: PORT ?? 41235 });
+	const server = new ws.WebSocket.Server({ port: PORT });
 	server.on("connection", (socket, req) => {
 		socket.on("message", (data) => {
 			clipboard.copy(data, (err) => {

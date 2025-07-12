@@ -1,3 +1,6 @@
+const safeParser = require("./utils/safeParser");
+
+require("dotenv").config();
 const PORT = process.env.UDP_PORT;
 
 function startListening(socket, callback) {
@@ -7,8 +10,12 @@ function startListening(socket, callback) {
 	});
 
 	socket.on("message", (msg, rinfo) => {
-		if (msg.toString() === "DISCOVER_PEER") {
-			callback(`${rinfo.address}:${process.env.TCP_PORT}`, rinfo);
+		// console.log("---->: ", msg.toString());
+		msg = safeParser(msg.toString());
+		if (msg) {
+			if (msg.type === "DISCOVER_PEER") {
+				callback(`${rinfo.address}:${msg.PORT}`, rinfo);
+			}
 		}
 	});
 }

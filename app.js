@@ -73,7 +73,22 @@ startBroadcasting((socket) => {
 					if (wsClient.readyState === wsClient.OPEN) {
 						getClipboard()
 							.then((text) => {
-								wsClient.send(Buffer.from(JSON.stringify({ msgId: crypto.randomUUID(), ttl: 5, data: text })));
+								let currentClip = text;
+								if (lastClipboard !== currentClip) {
+									lastClipboard = currentClip;
+									if (wsClient.readyState === wsClient.OPEN) {
+										// wsClient.send(Buffer.from(currentClip), (err) => {
+										// 	if (err) {
+										// 		console.log("Error in sending CLIP: ", err);
+										// 	}
+										// });
+										wsClient.send(Buffer.from(JSON.stringify({ msgId: crypto.randomUUID(), ttl: 5, data: text })), (err) => {
+											if (err) {
+												console.log("Error in sending new CLIP: ", err);
+											}
+										});
+									}
+								}
 							})
 							.catch((err) => {
 								console.log("error occurred during getting clipboard");

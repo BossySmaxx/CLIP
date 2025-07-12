@@ -4,6 +4,8 @@ const clipboard = require("copy-paste");
 const startBroadcasting = require("./broadcaster");
 const startListening = require("./listener");
 const safeParser = require("./utils/safeParser");
+const getClipboard = require("./utils/getClipboard");
+const setClipboard = require("./utils/setClipboard");
 require("dotenv").config();
 
 const PORT = process.env.TCP_PORT; // this is connection port transferring data and establishing connection with peers
@@ -69,8 +71,13 @@ startBroadcasting((socket) => {
 					// 	}
 					// });
 					if (wsClient.readyState === wsClient.OPEN) {
-						console.log("Sent by: ", device);
-						wsClient.send(Buffer.from(JSON.stringify({ msgId: crypto.randomUUID(), ttl: 5, data: `Message from ${SELF_IP.concat(":", PORT)}\n` })));
+						getClipboard()
+							.then((text) => {
+								wsClient.send(Buffer.from(JSON.stringify({ msgId: crypto.randomUUID(), ttl: 5, data: text })));
+							})
+							.catch((err) => {
+								console.log("error occurred during getting clipboard");
+							});
 					}
 
 					if (wsClient.readyState === wsClient.CLOSED) {
@@ -99,14 +106,21 @@ function websocketServer(callback) {
 			let msg = safeParser(data);
 			if (msg && msg?.msgId !== currentMsg?.msgId) {
 				console.log("New data:: ", msg);
+				setClipboard(msg.data)
+					.then(() => {
+						console.log("New CLIP: You can Press ctrl+v now.");
+					})
+					.catch((err) => {
+						console.log("error occurred during setting clipboard");
+					});
+				// clipboard.copy(data, (err) => {
+				// 	if (err) {
+				// 		console.log("Error: ", err);
+				// 	}
+				// 	console.log("wss::NEW CLIP: You can Press ctrl+v now.");
+				// });
 				currentMsg = msg;
 			}
-			// clipboard.copy(data, (err) => {
-			// 	if (err) {
-			// 		console.log("Error: ", err);
-			// 	}
-			// 	console.log("wss::NEW CLIP: You can Press ctrl+v now.");
-			// });
 		});
 	});
 }

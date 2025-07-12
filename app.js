@@ -26,45 +26,46 @@ startBroadcasting((socket) => {
 				if (connectedClients.has(device)) return;
 
 				// Initiate connection to newly discovered {device}'s websocket server
-				const wsClient = new ws(`ws://${device}`);
-				wsClient.on("open", () => {
-					console.log("Connected to: ", device);
-					connectedClients.add(device);
-					console.table(connectedClients);
-				});
-
-				if (connectedClients) {
-					let intervalId = setInterval(() => {
-						clipboard.paste((err, data) => {
-							if (err) {
-								console.log("Error in copy paste: ", err);
-							}
-							if (data) {
-								let currentClip = data;
-								if (lastClipboard !== currentClip) {
-									lastClipboard = currentClip;
-									if (wsClient.readyState === wsClient.CLOSED) {
-										clearInterval(intervalId);
-									}
-									if (wsClient.readyState === wsClient.OPEN) {
-										wsClient.send(Buffer.from(currentClip), (err) => {
-											if (err) {
-												console.log("Error in sending CLIP: ", err);
-											}
-											// console.log("CLIP sent: ", currentClip);
-										});
+				const wsClients = [];
+				wsClients.push(new ws(`ws://${device}`));
+				wsClients.forEach((wsClient, i) => {
+					wsClient.on("open", () => {
+						console.log("Connected to: ", device);
+						connectedClients.add(device);
+						console.table(connectedClients);
+					});
+					if (connectedClients) {
+						let intervalId = setInterval(() => {
+							clipboard.paste((err, data) => {
+								if (err) {
+									console.log("Error in copy paste: ", err);
+								}
+								if (data) {
+									let currentClip = data;
+									if (lastClipboard !== currentClip) {
+										lastClipboard = currentClip;
+										if (wsClient.readyState === wsClient.CLOSED) {
+											clearInterval(intervalId);
+										}
+										if (wsClient.readyState === wsClient.OPEN) {
+											wsClient.send(Buffer.from(currentClip), (err) => {
+												if (err) {
+													console.log("Error in sending CLIP: ", err);
+												}
+												// console.log("CLIP sent: ", currentClip);
+											});
+										}
 									}
 								}
-							}
-						});
-					}, 1000);
-				}
-
-				wsClient.on("close", (code, reason) => {
-					console.log(`closing the connection with ${device} due to  ${code}: ${reason}`);
-					connectedClients.delete(device);
-					console.table(connectedClients);
-					discoveredDevices.delete(device);
+							});
+						}, 1000);
+					}
+					wsClient.on("close", (code, reason) => {
+						console.log(`closing the connection with ${device} due to  ${code}: ${reason}`);
+						connectedClients.delete(device);
+						console.table(connectedClients);
+						discoveredDevices.delete(device);
+					});
 				});
 			}
 		});

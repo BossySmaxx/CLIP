@@ -34,19 +34,28 @@ startBroadcasting((socket) => {
 						connectedClients.add(device);
 						console.table(connectedClients);
 					});
-					if (connectedClients) {
-						let intervalId = setInterval(() => {
-							clipboard.paste((err, data) => {
-								if (err) {
-									console.log("Error in copy paste: ", err);
-								}
-								if (data) {
-									let currentClip = data;
-									if (lastClipboard !== currentClip) {
-										lastClipboard = currentClip;
-										if (wsClient.readyState === wsClient.CLOSED) {
-											clearInterval(intervalId);
-										}
+					wsClient.on("close", (code, reason) => {
+						console.log(`closing the connection with ${device} due to  ${code}: ${reason}`);
+						connectedClients.delete(device);
+						console.table(connectedClients);
+						discoveredDevices.delete(device);
+					});
+				});
+
+				if (wsClients && wsClients.length > 1) {
+					setInterval(() => {
+						clipboard.paste((err, data) => {
+							if (err) {
+								console.log("Error in copy paste: ", Buffer.from(err).toString("utf-8"));
+							}
+							if (!err && data) {
+								let currentClip = data;
+								if (lastClipboard !== currentClip) {
+									lastClipboard = currentClip;
+									// if (wsClient.readyState === wsClient.CLOSED) {
+									// 	clearInterval(intervalId);
+									// }
+									wsClients.forEach((wsClient, i) => {
 										if (wsClient.readyState === wsClient.OPEN) {
 											wsClient.send(Buffer.from(currentClip), (err) => {
 												if (err) {
@@ -55,18 +64,12 @@ startBroadcasting((socket) => {
 												// console.log("CLIP sent: ", currentClip);
 											});
 										}
-									}
+									});
 								}
-							});
-						}, 1000);
-					}
-					wsClient.on("close", (code, reason) => {
-						console.log(`closing the connection with ${device} due to  ${code}: ${reason}`);
-						connectedClients.delete(device);
-						console.table(connectedClients);
-						discoveredDevices.delete(device);
-					});
-				});
+							}
+						});
+					}, 1000);
+				}
 			}
 		});
 	});

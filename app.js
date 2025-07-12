@@ -18,8 +18,8 @@ let lastClipboard = "";
 startBroadcasting((socket) => {
 	startListening(socket, (discoveredDevice, rinfo) => {
 		discoveredDevices.add(discoveredDevice);
-		console.log("discovered devices: ");
-		console.table(discoveredDevices);
+		// console.log("discovered devices: ");
+		// console.table(discoveredDevices);
 		discoveredDevices.forEach(async (device) => {
 			if (device.split(":")[0] !== SELF_IP) {
 				// do nothing if device is already connected

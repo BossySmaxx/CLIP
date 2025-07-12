@@ -1,20 +1,16 @@
-const PORT = 41234;
+const PORT = process.env.UDP_PORT;
 
 function startListening(socket, callback) {
-	socket.on("listening", () => {
+	socket.on("connect", () => {
 		const address = socket.address();
-		console.log(
-			`UDP socket listening on ${address.address}:${address.port}`
-		);
+		console.log(`UDP socket listening on ${address.address}:${address.port}`);
 	});
 
 	socket.on("message", (msg, rinfo) => {
 		if (msg.toString() === "DISCOVER_PEER") {
-			callback(msg, rinfo);
+			callback(`${rinfo.address}:${process.env.TCP_PORT}`, rinfo);
 		}
 	});
-
-	// socket.bind(PORT, "0.0.0.0");
 }
 
 module.exports = startListening;

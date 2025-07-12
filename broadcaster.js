@@ -1,10 +1,17 @@
 const dgram = require("dgram");
 const getBroadcastAddress = require("./utils/broadcasting-address");
+require("dotenv").config();
+
 // const startListening = require("./listener");
 
 const socket = dgram.createSocket({ type: "udp4", reuseAddr: true });
-const PORT = 41234;
+const PORT = process.env.UDP_PORT; // this is broadcasting port different from connection PORT
 const BROADCAST_ADDR = getBroadcastAddress();
+
+if (BROADCAST_ADDR === null) {
+	console.log("You are connected to any network!");
+	process.exit(-1);
+}
 
 function startBroadcasting(callback) {
 	console.log(`broadcastign on ${BROADCAST_ADDR}:${PORT}`);
@@ -14,7 +21,7 @@ function startBroadcasting(callback) {
 			const msg = Buffer.from("DISCOVER_PEER");
 			socket.send(msg, PORT, BROADCAST_ADDR, (err) => {
 				if (err) {
-					console.log("error: ");
+					console.log("error in broadcasting: ");
 				}
 			});
 		}, 5000);

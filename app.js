@@ -3,6 +3,9 @@ const ip = require("ip");
 const clipboard = require("copy-paste");
 const startBroadcasting = require("./broadcaster");
 const startListening = require("./listener");
+require("dotenv").config();
+
+const PORT = process.env.TCP_PORT || 41230; // this is connection port transferring data and establishing connection with peers
 
 let discoveredDevices = new Set();
 const connectedClients = new Set(); // Tracks devices already connected via WebSocket
@@ -13,14 +16,15 @@ console.log("SELF_IP: ", SELF_IP);
 let lastClipboard = "";
 
 startBroadcasting((socket) => {
-	startListening(socket, (msg, rinfo) => {
-		discoveredDevices.add(rinfo.address);
+	startListening(socket, (discoveredDevice, rinfo) => {
+		discoveredDevices.add(discoveredDevice);
 		discoveredDevices.forEach(async (device) => {
-			if (device !== SELF_IP) {
+			if (device !== SELF_IP.concat(":", PORT)) {
+				// do nothing if device is already connected
 				if (connectedClients.has(device)) return;
 
-				// Initiate connection to discovered {device}'s websocket server
-				const wsClient = new ws(`ws://${device}:8080`);
+				// Initiate connection to newly discovered {device}'s websocket server
+				const wsClient = new ws(`ws://${device}`);
 				wsClient.on("open", () => {
 					console.log("Connected to: ", device);
 					connectedClients.add(device);
@@ -37,24 +41,16 @@ startBroadcasting((socket) => {
 								let currentClip = data;
 								if (lastClipboard !== currentClip) {
 									lastClipboard = currentClip;
-									if (
-										wsClient.readyState === wsClient.CLOSED
-									) {
+									if (wsClient.readyState === wsClient.CLOSED) {
 										clearInterval(intervalId);
 									}
 									if (wsClient.readyState === wsClient.OPEN) {
-										wsClient.send(
-											Buffer.from(currentClip),
-											(err) => {
-												if (err) {
-													console.log(
-														"Error in sending CLIP: ",
-														err
-													);
-												}
-												// console.log("CLIP sent: ", currentClip);
+										wsClient.send(Buffer.from(currentClip), (err) => {
+											if (err) {
+												console.log("Error in sending CLIP: ", err);
 											}
-										);
+											// console.log("CLIP sent: ", currentClip);
+										});
 									}
 								}
 							}
@@ -63,9 +59,7 @@ startBroadcasting((socket) => {
 				}
 
 				wsClient.on("close", (code, reason) => {
-					console.log(
-						`closing the connection with ${device} due to  ${code}: ${reason}`
-					);
+					console.log(`closing the connection with ${device} due to  ${code}: ${reason}`);
 					connectedClients.delete(device);
 					console.table(connectedClients);
 					discoveredDevices.delete(device);
@@ -78,8 +72,7 @@ startBroadcasting((socket) => {
 });
 
 function websocketServer(callback) {
-	const server = new ws.WebSocket.Server({ port: 8080 });
-
+	const server = new ws.WebSocket.Server({ port: PORT ?? 41235 });
 	server.on("connection", (socket, req) => {
 		socket.on("message", (data) => {
 			clipboard.copy(data, (err) => {

@@ -9,14 +9,15 @@ const getClipboard = require("./utils/getClipboard");
 const setClipboard = require("./utils/setClipboard");
 require("dotenv").config();
 const fs = require("fs");
+const { normalizePort } = require("./utils/normalizePort");
 
 const PORT = normalizePort(process.env.TCP_PORT, "TCP_PORT"); // this is connection port transferring data and establishing connection with peers
 const CLIPS_STORAGE_PATH = path.join(__dirname, "clipsStorage.json");
 const MAX_STORED_CLIPS = 5;
 
-let discoveredDevices = new Set();
+let discoveredDevices = new Set(); // discovered devices
 const connectedClients = new Set(); // Tracks devices already connected via WebSocket
-const seenMessages = new Set();
+const seenMessages = new Set(); // basically the clips
 
 const SELF_IP = ip.address("public", "ipv4");
 const SELF_DEVICE = `${SELF_IP}:${PORT}`;
@@ -58,11 +59,12 @@ startBroadcasting((socket) => {
 					console.log(`WebSocket error with ${device}:`, err.message);
 				});
 
+				// so every second get the clipboard and check whether there's something new if so send the new clip to all the peers otherwise do nothing
 				let intervalId = setInterval(() => {
 					if (wsClient.readyState === wsClient.OPEN) {
 						getClipboard()
 							.then((text) => {
-								if (!text || text === lastClipboard) return;
+								if (!text || text === lastClipboard) return; //
 
 								lastClipboard = text;
 								const msg = {
@@ -83,7 +85,9 @@ startBroadcasting((socket) => {
 							});
 					}
 
+					// if ws connection is closed  then clear interval
 					if (wsClient.readyState === wsClient.CLOSED) {
+						console.log("CLOSING WS Connection");
 						clearInterval(intervalId);
 					}
 				}, 1000);
@@ -169,13 +173,4 @@ function rememberMessage(msgId) {
 		const oldestMsgId = seenMessages.values().next().value;
 		seenMessages.delete(oldestMsgId);
 	}
-}
-
-function normalizePort(port, name) {
-	const normalizedPort = Number(port);
-	if (!Number.isInteger(normalizedPort) || normalizedPort < 1 || normalizedPort > 65535) {
-		throw new Error(`${name} must be a valid port between 1 and 65535.`);
-	}
-
-	return normalizedPort;
 }

@@ -1,3 +1,4 @@
+const { isValidPort } = require("./utils/normalizePort");
 const safeParser = require("./utils/safeParser");
 
 function startListening(socket, callback) {
@@ -10,14 +11,10 @@ function startListening(socket, callback) {
 		// console.log("---->: ", msg.toString());
 		msg = safeParser(msg.toString());
 		if (msg && msg.type === "DISCOVER_PEER" && isValidPort(msg.PORT)) {
+			// this callback binds the info of discoevered peer so a socket connection can be established for data transmission line
 			callback(`${rinfo.address}:${msg.PORT}`, rinfo);
 		}
 	});
 }
 
 module.exports = startListening;
-
-function isValidPort(port) {
-	const normalizedPort = Number(port);
-	return Number.isInteger(normalizedPort) && normalizedPort > 0 && normalizedPort <= 65535;
-}

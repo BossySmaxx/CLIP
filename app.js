@@ -1,19 +1,25 @@
 const ws = require("ws");
 const ip = require("ip");
-const clipboard = require("copy-paste");
+const crypto = require("crypto");
+const path = require("path");
 const startBroadcasting = require("./broadcaster");
 const startListening = require("./listener");
 const safeParser = require("./utils/safeParser");
 const getClipboard = require("./utils/getClipboard");
 const setClipboard = require("./utils/setClipboard");
 require("dotenv").config();
+const fs = require("fs");
 
-const PORT = process.env.TCP_PORT; // this is connection port transferring data and establishing connection with peers
+const PORT = normalizePort(process.env.TCP_PORT, "TCP_PORT"); // this is connection port transferring data and establishing connection with peers
+const CLIPS_STORAGE_PATH = path.join(__dirname, "clipsStorage.json");
+const MAX_STORED_CLIPS = 5;
 
 let discoveredDevices = new Set();
 const connectedClients = new Set(); // Tracks devices already connected via WebSocket
+const seenMessages = new Set();
 
 const SELF_IP = ip.address("public", "ipv4");
+const SELF_DEVICE = `${SELF_IP}:${PORT}`;
 console.log("SELF_IP: ", SELF_IP);
 
 let lastClipboard = "";
@@ -21,8 +27,8 @@ let lastClipboard = "";
 startBroadcasting((socket) => {
 	startListening(socket, (discoveredDevice, rinfo) => {
 		discoveredDevices.add(discoveredDevice);
-		discoveredDevices.forEach(async (device) => {
-			if (device.split(":")[0] !== SELF_IP) {
+		discoveredDevices.forEach((device) => {
+			if (device !== SELF_DEVICE) {
 				// do nothing if device is already connected
 				if (connectedClients.has(device)) return;
 
@@ -34,13 +40,10 @@ startBroadcasting((socket) => {
 					console.table(connectedClients);
 				});
 
-				wsClient.on("message", (data) => {
+				wsClient.on("message", (data, isBinary) => {
 					console.log("new message arrived: ");
-					clipboard.copy(data, (err) => {
-						if (err) {
-							console.log("Error: ", err);
-						}
-						console.log("wsClient::NEW CLIP: You can Press ctrl+v now.");
+					handleIncomingClip(data, isBinary).catch((err) => {
+						console.log("Error handling incoming clip:", err.message);
 					});
 				});
 
@@ -51,44 +54,29 @@ startBroadcasting((socket) => {
 					discoveredDevices.delete(device);
 				});
 
+				wsClient.on("error", (err) => {
+					console.log(`WebSocket error with ${device}:`, err.message);
+				});
+
 				let intervalId = setInterval(() => {
-					// clipboard.paste((err, data) => {
-					// 	if (err) {
-					// 		console.log("Error in copy paste: ", err);
-					// 	}
-					// 	if (!err && data) {
-					// 		let currentClip = data;
-					// 		if (lastClipboard !== currentClip) {
-					// 			lastClipboard = currentClip;
-					// 			if (wsClient.readyState === wsClient.OPEN) {
-					// 				wsClient.send(Buffer.from(currentClip), (err) => {
-					// 					if (err) {
-					// 						console.log("Error in sending CLIP: ", err);
-					// 					}
-					// 				});
-					// 			}
-					// 		}
-					// 	}
-					// });
 					if (wsClient.readyState === wsClient.OPEN) {
 						getClipboard()
 							.then((text) => {
-								let currentClip = text;
-								if (lastClipboard !== currentClip) {
-									lastClipboard = currentClip;
-									if (wsClient.readyState === wsClient.OPEN) {
-										// wsClient.send(Buffer.from(currentClip), (err) => {
-										// 	if (err) {
-										// 		console.log("Error in sending CLIP: ", err);
-										// 	}
-										// });
-										wsClient.send(Buffer.from(JSON.stringify({ msgId: crypto.randomUUID(), ttl: 5, data: text })), (err) => {
-											if (err) {
-												console.log("Error in sending new CLIP: ", err);
-											}
-										});
+								if (!text || text === lastClipboard) return;
+
+								lastClipboard = text;
+								const msg = {
+									msgId: crypto.randomUUID(),
+									ttl: 5,
+									data: text,
+								};
+
+								rememberMessage(msg.msgId);
+								wsClient.send(Buffer.from(JSON.stringify(msg)), (err) => {
+									if (err) {
+										console.log("Error in sending new CLIP: ", err);
 									}
-								}
+								});
 							})
 							.catch((err) => {
 								console.log("error occurred during getting clipboard");
@@ -108,34 +96,86 @@ startBroadcasting((socket) => {
 websocketServer(() => {});
 
 function websocketServer(callback) {
-	let currentMsg = {
-		msgId: null,
-	};
+	let clips = [];
 	const server = new ws.WebSocket.Server({ port: PORT });
 	server.on("connection", (socket, req) => {
 		socket.on("message", (data, isBinary) => {
-			if (isBinary) {
-				data = Buffer.from(data);
-				data = data.toString("utf-8");
-			}
-			let msg = safeParser(data);
-			if (msg && msg?.msgId !== currentMsg?.msgId) {
-				console.log("New data:: ", msg);
-				setClipboard(msg.data)
-					.then(() => {
-						console.log("New CLIP: You can Press ctrl+v now.");
-					})
-					.catch((err) => {
-						console.log("error occurred during setting clipboard");
-					});
-				// clipboard.copy(data, (err) => {
-				// 	if (err) {
-				// 		console.log("Error: ", err);
-				// 	}
-				// 	console.log("wss::NEW CLIP: You can Press ctrl+v now.");
-				// });
-				currentMsg = msg;
-			}
+			handleIncomingClip(data, isBinary, clips)
+				.then((updatedClips) => {
+					clips = updatedClips;
+				})
+				.catch((err) => {
+					console.log("Error handling incoming clip:", err.message);
+				});
+		});
+
+		socket.on("error", (err) => {
+			console.log("WebSocket server socket error:", err.message);
 		});
 	});
+
+	server.on("listening", () => {
+		console.log(`WebSocket server listening on port ${PORT}`);
+		callback();
+	});
+
+	server.on("error", (err) => {
+		console.log("WebSocket server error:", err.message);
+	});
+}
+
+async function handleIncomingClip(data, isBinary = true, clips = null) {
+	if (isBinary || Buffer.isBuffer(data)) {
+		data = Buffer.from(data).toString("utf-8");
+	}
+
+	const msg = safeParser(data);
+	if (!isValidClipMessage(msg) || seenMessages.has(msg.msgId)) {
+		return clips ?? [];
+	}
+
+	rememberMessage(msg.msgId);
+	console.log("New data:: ", msg);
+
+	if (msg.data !== lastClipboard) {
+		try {
+			await setClipboard(msg.data);
+			lastClipboard = msg.data;
+			console.log("NEW CLIP: You can press Ctrl+V now.");
+		} catch (err) {
+			console.log("Error setting clipboard:", err.message);
+		}
+	}
+
+	if (!clips) return [];
+
+	const updatedClips = [...clips, msg].slice(-MAX_STORED_CLIPS);
+	fs.writeFile(CLIPS_STORAGE_PATH, JSON.stringify(updatedClips, null, 2), (err) => {
+		if (err) {
+			console.log("Error writing clips storage: ", err);
+		}
+	});
+
+	return updatedClips;
+}
+
+function isValidClipMessage(msg) {
+	return msg && typeof msg.msgId === "string" && typeof msg.data === "string" && (msg.ttl === undefined || Number.isInteger(msg.ttl));
+}
+
+function rememberMessage(msgId) {
+	seenMessages.add(msgId);
+	if (seenMessages.size > 100) {
+		const oldestMsgId = seenMessages.values().next().value;
+		seenMessages.delete(oldestMsgId);
+	}
+}
+
+function normalizePort(port, name) {
+	const normalizedPort = Number(port);
+	if (!Number.isInteger(normalizedPort) || normalizedPort < 1 || normalizedPort > 65535) {
+		throw new Error(`${name} must be a valid port between 1 and 65535.`);
+	}
+
+	return normalizedPort;
 }

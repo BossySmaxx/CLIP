@@ -1,5 +1,4 @@
 const { exec } = require("child_process");
-const setClipboard = require("./setClipboard");
 
 function getClipboard() {
 	return new Promise((resolve, reject) => {
